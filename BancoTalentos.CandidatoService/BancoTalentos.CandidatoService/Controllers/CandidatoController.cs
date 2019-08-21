@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BancoTalentos.CandidatoService.Model;
 using BancoTalentos.CandidatoService.Model.Repository;
-using BancoTalentos.CandidatoService.ViewModel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,16 +21,25 @@ namespace BancoTalentos.CandidatoService.Controllers
             _candidatoRepository = candidatoRepository;
         }
         
-        // GET api/values
         [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
+        public ActionResult<List<Candidato>> Get()
         {
-            return new string[] { "value1", "value2" };
+            try
+            {
+                List<Candidato> candidatos = _candidatoRepository.Get()
+                       .Include(x => x.Disponibilidades)
+                       .Include(x => x.Horarios)
+                       .OrderByDescending(x => x.Id).ToList();
+                return Ok(new BancoTalentosJson<List<Candidato>>().GetOK(candidatos));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new BancoTalentosJson<Candidato>().GetInternalServerError(ex));
+            }
         }
 
-        // GET api/values/5
         [HttpGet()]
-        public ActionResult<CandidatoViewModel> Get([FromQuery] int? id, [FromQuery] string name)
+        public ActionResult<Candidato> Get([FromQuery] int? id, [FromQuery] string name)
         {
             try
             {
@@ -46,33 +55,72 @@ namespace BancoTalentos.CandidatoService.Controllers
                 {
                     candidatoQuery = candidatoQuery.Where(x => x.Nome == name);
                 }
-                //CandidatoViewModel candidato = billsQuery.OrderByDescending(x => x.BillDate).ToList();
-                //return Ok(new EnernocJson<List<Bill>>().GetOK(bills));
+                Candidato candidato = candidatoQuery.FirstOrDefault();
+                return Ok(new BancoTalentosJson<Candidato>().GetOK(candidato));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, new BancoTalentosJson<Candidato>().GetInternalServerError(ex));
             }
-            return null;
         }
 
-        // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public IActionResult Create([FromBody] Candidato candidato)
         {
+            try
+            {
+                if (candidato == null)
+                {
+                    return BadRequest(new BancoTalentosJson<Candidato>().GetBadRequestNull());
+                }
+                _candidatoRepository.Add(candidato);
+                return Ok(new BancoTalentosJson<Candidato>().GetOK(candidato));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new BancoTalentosJson<Candidato>().GetInternalServerError(ex));
+            }
         }
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPut()]
+        public IActionResult Update([FromBody] Candidato candidato)
         {
+            try
+            {
+                if (candidato == null)
+                {
+                    return BadRequest(new BancoTalentosJson<Candidato>().GetBadRequestNull());
+                }
+                _candidatoRepository.Update(candidato);
+                return Ok(new BancoTalentosJson<Candidato>().GetOK(candidato));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new BancoTalentosJson<Candidato>().GetInternalServerError(ex));
+            }
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("{id:int?}")]
+        public IActionResult Delete(int id)
         {
+            try
+            {
+                Candidato candidato = _candidatoRepository.Get()
+                       .Include(x => x.Disponibilidades)
+                       .Include(x => x.Horarios)
+                       .OrderByDescending(x => x.Id).ToList().FirstOrDefault(x=>x.Id==id);
+
+                if (candidato == null)
+                {
+                    return BadRequest(new BancoTalentosJson<Candidato>().GetBadRequestNull());
+                }
+                _candidatoRepository.Delete(candidato);
+                return Ok(new BancoTalentosJson<Candidato>().GetOK(candidato));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new BancoTalentosJson<Candidato>().GetInternalServerError(ex));
+            }
         }
     }
 }
