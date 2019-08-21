@@ -20,8 +20,9 @@ namespace BancoTalentos.CandidatoService.Controllers
         {
             _candidatoRepository = candidatoRepository;
         }
-        
-        [HttpGet]
+
+        [HttpGet()]
+        [Route("List")]
         public ActionResult<List<Candidato>> Get()
         {
             try
