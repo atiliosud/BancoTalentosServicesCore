@@ -34,7 +34,12 @@ namespace BancoTalentos.CandidatoService
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
             services.AddTransient<ICandidatoRepository, CandidatoRepository>();
+            services.AddTransient<ICidadeRepository, CidadeRepository>();
+            services.AddTransient<IEstadoRepository, EstadoRepository>();
+            services.AddTransient<IHorarioRepository, HorarioRepository>();
+            services.AddTransient<IDisponibilidadeRepository, DisponibilidadeRepository>();
 
             services.AddDbContext<CandidatoContext>(options =>
               options.UseSqlServer(Configuration.GetConnectionString("CandidateDatabase")));
