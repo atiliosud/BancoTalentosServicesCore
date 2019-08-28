@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace BancoTalentos.CandidatoService
@@ -28,12 +29,22 @@ namespace BancoTalentos.CandidatoService
         {
             Configuration = configuration;
             Environment = env;
+
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+            Configuration = builder.Build();
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc()
+               .AddJsonOptions(
+               options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            );
 
             services.AddTransient<ICandidatoRepository, CandidatoRepository>();
             services.AddTransient<ICidadeRepository, CidadeRepository>();
@@ -43,6 +54,8 @@ namespace BancoTalentos.CandidatoService
 
             services.AddDbContext<CandidatoContext>(options =>
               options.UseSqlServer(Configuration.GetConnectionString("CandidateDatabase")));
+
+            services.AddApiVersioning();
 
             services.AddSwaggerGen(c =>
             {
@@ -65,11 +78,13 @@ namespace BancoTalentos.CandidatoService
                 c.DescribeAllEnumsAsStrings();
             });
 
-            services.AddCors(options =>
+            services.AddCors(options => options.AddPolicy("CorsPolicy",
+            builder =>
             {
-                options.AddPolicy("AllowSpecificOrigin",
-                    builder => builder.WithOrigins("https://localhost:5001").AllowAnyHeader().AllowAnyMethod());
-            });
+                builder.AllowAnyMethod().AllowAnyHeader()
+                       .WithOrigins("http://localhost:6365")
+                       .AllowCredentials();
+            }));
 
             services.Configure<MvcOptions>(options =>
             {
@@ -90,7 +105,6 @@ namespace BancoTalentos.CandidatoService
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
